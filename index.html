@@ -951,23 +951,64 @@
       try {
         const response = await jsonpRequest({ action: 'status', t: Date.now() }, 9000);
         if (response && (response.status === 'ok' || response.status === 'success')) updateSeats(response);
-      } catch (_) {}
+      } catch (_) {
+        // Keep registration available even if desktop blocks the live seats request.
+        // The server still checks seat availability during registration.
+      }
     }
 
     function normalizeEmail(email) {
       return String(email || '').trim().toLowerCase();
     }
 
+    function normalizeLevel(level) {
+      const value = String(level || '').trim();
+      const map = {
+        'Mid-Level': 'Middle Level',
+        'Mid Level': 'Middle Level',
+        'Middle-Level': 'Middle Level'
+      };
+      return map[value] || value;
+    }
+
+    function buildApiUrl(params = {}) {
+      const url = new URL(API_URL);
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) url.searchParams.set(key, value);
+      });
+      return url;
+    }
+
     async function submitRegistration(payload) {
-      return jsonpRequest({
+      const cleanPayload = {
         action: 'register',
         name: payload.name,
         email: payload.email,
-        level: payload.level,
-        source: window.location.href,
-        userAgent: navigator.userAgent,
+        level: normalizeLevel(payload.level),
         t: Date.now()
-      }, 15000);
+      };
+
+      try {
+        return await jsonpRequest(cleanPayload, 15000);
+      } catch (error) {
+        // Desktop fallback: if JSONP/script loading is blocked by browser extensions or privacy settings,
+        // send the same registration as a no-cors GET request. We cannot read the response here,
+        // but the Apps Script receives the request and duplicate protection stays server-side.
+        const fallbackUrl = buildApiUrl(Object.assign({}, cleanPayload, { fallback: 'fetch' }));
+        await fetch(fallbackUrl.toString(), {
+          method: 'GET',
+          mode: 'no-cors',
+          cache: 'no-store',
+          credentials: 'omit'
+        });
+        return {
+          status: 'success',
+          totalSeats,
+          remaining: Math.max(seatsLeft - 1, 0),
+          popupTitle: 'تم استلام الحجز',
+          popupText: 'لو الإيميل صحيح، هتوصلك تفاصيل السيشن خلال دقائق.'
+        };
+      }
     }
 
     fetchSeatStatus();
