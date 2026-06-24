@@ -429,6 +429,26 @@
     .seats-count small { color: var(--muted); font-size: .75em; font-weight: 700; }
     .progress { height: 9px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.05); }
     .progress span { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold-3), var(--gold-2), var(--gold-1)); transition: width .32s var(--ease); }
+    .full-seats-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      margin: -2px 0 14px;
+      padding: 0 14px;
+      border: 1px solid rgba(var(--gold-rgb), .26);
+      border-radius: 16px;
+      color: var(--gold-1);
+      background:
+        radial-gradient(circle at 92% 20%, rgba(var(--gold-rgb), .15), transparent 38%),
+        rgba(var(--gold-rgb), .065);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.055);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.45;
+      text-align: center;
+    }
+    .full-seats-note[hidden] { display: none; }
 
     .form { display: grid; gap: 12px; }
     .field { display: grid; gap: 7px; }
@@ -780,11 +800,13 @@
 
               <div class="seats-block" aria-live="polite">
                 <div class="seats-top">
-                  <span class="seats-label">المقاعد المتبقية</span>
+                  <span class="seats-label">المقاعد المحجوزة</span>
                   <strong class="seats-count"><span id="seatsLeft">50</span> <small>/ <span id="seatsTotal">50</span></small></strong>
                 </div>
                 <div class="progress" aria-hidden="true"><span id="seatsProgress"></span></div>
               </div>
+
+              <div class="full-seats-note" id="fullSeatsNote" hidden>تم حجز جميع المقاعد</div>
 
               <form class="form" id="bookingForm" novalidate>
                 <div class="field" data-field="name">
@@ -865,6 +887,7 @@
     const seatsEl = document.getElementById('seatsLeft');
     const seatsTotalEl = document.getElementById('seatsTotal');
     const progressEl = document.getElementById('seatsProgress');
+    const fullSeatsNote = document.getElementById('fullSeatsNote');
     const form = document.getElementById('bookingForm');
     const booking = document.getElementById('booking');
     const modal = document.getElementById('successModal');
@@ -930,14 +953,20 @@
       seatsLeft = Math.max(0, Math.min(totalSeats, Number(data?.remaining ?? seatsLeft) || 0));
       siteMode = String(data?.siteMode || siteMode || 'registration');
 
-      seatsEl.textContent = seatsLeft;
+      const bookedSeats = Math.max(0, totalSeats - seatsLeft);
+
+      seatsEl.textContent = bookedSeats;
       if (seatsTotalEl) seatsTotalEl.textContent = totalSeats;
-      progressEl.style.width = `${(seatsLeft / totalSeats) * 100}%`;
+      progressEl.style.width = `${(bookedSeats / totalSeats) * 100}%`;
 
       const isClosed = siteMode === 'closed';
       const isLive = siteMode === 'live';
       const isFull = seatsLeft <= 0;
       const submitButton = form.querySelector('button[type="submit"]');
+
+      if (fullSeatsNote) {
+        fullSeatsNote.hidden = !isFull;
+      }
 
       if (seatsStatusText) {
         seatsStatusText.textContent = isLive
