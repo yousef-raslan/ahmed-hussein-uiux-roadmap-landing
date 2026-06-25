@@ -865,9 +865,9 @@
   <div class="modal" id="successModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="successTitle">
     <div class="success-card">
       <div class="success-icon"><svg class="icon"><use href="#i-check"></use></svg></div>
-      <h2 class="success-title" id="successTitle">تم تأكيد الحجز</h2>
-      <p class="success-text" id="successText">سيتم إرسال تفاصيل الحضور على بريدك الإلكتروني خلال دقائق.</p>
-      <div class="success-info"><svg class="icon"><use href="#i-calendar"></use></svg><span>السبت 27 يونيو · مباشرة ومجانية</span></div>
+      <h2 class="success-title" id="successTitle">تم حجز مكانك بنجاح</h2>
+      <p class="success-text" id="successText">هتوصلك رسالة التأكيد وتفاصيل دخول السيشن على بريدك الإلكتروني خلال اليوم.</p>
+      <div class="success-info"><svg class="icon"><use href="#i-calendar"></use></svg><span id="successInfoText">السبت 27 يونيو 2026 · 7:00 مساءً</span></div>
       <div class="success-actions">
         <button class="btn btn-primary" type="button" data-close-modal>تمام</button>
         <button class="btn btn-secondary" type="button" data-share><svg class="icon"><use href="#i-share"></use></svg>شارك السيشن</button>
@@ -895,6 +895,7 @@
     const seatsStatusText = document.querySelector('.seats-pill span');
     const successTitleEl = document.getElementById('successTitle');
     const successTextEl = document.getElementById('successText');
+    const successInfoEl = document.getElementById('successInfoText');
 
     function isApiConfigured() {
       return API_URL && !API_URL.includes('PASTE_APPS_SCRIPT_WEB_APP_URL_HERE');
@@ -907,7 +908,7 @@
             if (params.action === 'status') {
               resolve({ status: 'ok', totalSeats: DEFAULT_TOTAL_SEATS, remaining: DEFAULT_TOTAL_SEATS, siteMode: 'registration' });
             } else {
-              resolve({ status: 'success', totalSeats: DEFAULT_TOTAL_SEATS, remaining: Math.max(seatsLeft - 1, 0), popupTitle: 'تم تأكيد الحجز', popupText: 'سيتم إرسال تفاصيل الحضور على بريدك الإلكتروني خلال دقائق.' });
+              resolve({ status: 'success', totalSeats: DEFAULT_TOTAL_SEATS, remaining: Math.max(seatsLeft - 1, 0), popupTitle: 'تم حجز مكانك بنجاح', popupText: 'هتوصلك رسالة التأكيد وتفاصيل دخول السيشن على بريدك الإلكتروني خلال اليوم.', successInfo: 'السبت 27 يونيو 2026 · 7:00 مساءً' });
             }
           }, 450);
         });
@@ -1048,8 +1049,9 @@
           status: 'success',
           totalSeats,
           remaining: Math.max(seatsLeft - 1, 0),
-          popupTitle: 'تم استلام الحجز',
-          popupText: 'لو الإيميل صحيح، هتوصلك تفاصيل السيشن خلال دقائق.'
+          popupTitle: 'تم حجز مكانك بنجاح',
+          popupText: 'هتوصلك رسالة التأكيد وتفاصيل دخول السيشن على بريدك الإلكتروني خلال اليوم.',
+          successInfo: 'السبت 27 يونيو 2026 · 7:00 مساءً'
         };
       }
     }
@@ -1211,6 +1213,8 @@
     function openSuccessModal(response) {
       if (response?.popupTitle && successTitleEl) successTitleEl.textContent = response.popupTitle;
       if (response?.popupText && successTextEl) successTextEl.textContent = response.popupText;
+      const successInfo = response?.successPopupMeta || response?.successInfo || [response?.sessionDate, response?.sessionTime].filter(Boolean).join(' · ');
+      if (successInfo && successInfoEl) successInfoEl.textContent = successInfo;
       modal.classList.add('show');
       modal.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
